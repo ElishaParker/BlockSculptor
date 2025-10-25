@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Block Sculptor</title>
+  <link rel="stylesheet" href="styles/main.css" />
+  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm"></script>
+</head>
+<body>
+  <div id="overlay">
+    <div class="overlay-content">
+      <h1>🧱 Block Sculptor</h1>
+      <p>Sculpt your imagination in cubes.</p>
+      <div class="buttons">
+        <button data-size="small">Small Room</button>
+        <button data-size="medium">Medium Room</button>
+        <button data-size="large">Large Room</button>
+      </div>
+      <small class="note">Larger rooms may reduce performance.</small>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
