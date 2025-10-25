@@ -1,24 +1,26 @@
 // ======================================================
-//  Block Sculptor – Phase 2
-//  FPS Controls + Fly / Walk Modes + Tunable Speeds
+//  Block Sculptor – Phase 2.2
+//  FPS Controls + Custom Room Size + Collisions
 // ======================================================
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
 
 // ---------- Variables ----------
-let scene, camera, renderer, pointerLock;
+let scene, camera, renderer;
+let pointerLock = false;
 let roomSize = 50;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 let moveUp = false, moveDown = false, canJump = false;
 let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
+let yaw = 0, pitch = 0;
 let gravity = -9.8;
 let onGround = false;
 
 // ---------- Parameters & GUI ----------
 const params = {
-  mode: 'Fly', // Fly or Walk
-  speedMode: 'Slow', // Slow or Fast
+  mode: 'Fly',
+  speedMode: 'Slow',
   flySpeed: 8,
   walkSpeed: 4,
   jumpStrength: 1,
@@ -30,6 +32,33 @@ let gui;
 // ---------- Room Selection ----------
 const overlay = document.getElementById('overlay');
 const buttons = overlay.querySelectorAll('button');
+const customBtn = document.createElement('button');
+customBtn.textContent = 'Custom Room';
+overlay.querySelector('.buttons').appendChild(customBtn);
+
+customBtn.addEventListener('click', () => {
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = 10; input.max = 100;
+  input.placeholder = 'Enter size (10–100)';
+  input.style.marginTop = '1rem';
+  input.style.padding = '.5rem';
+  overlay.querySelector('.overlay-content').appendChild(input);
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = Number(input.value);
+      if (val >= 10 && val <= 100) {
+        roomSize = val;
+        initScene();
+        overlay.remove();
+      } else {
+        input.style.border = '2px solid red';
+        input.placeholder = 'Must be 10–100';
+      }
+    }
+  });
+});
 
 buttons.forEach(btn => {
   btn.addEventListener('click', () => {
@@ -47,9 +76,8 @@ function initScene() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(params.background);
 
-  const aspect = window.innerWidth / window.innerHeight;
-  camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 2000);
-  camera.position.set(roomSize / 4, roomSize / 6, roomSize / 4);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 2, 5);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -62,106 +90,92 @@ function initScene() {
   dirLight.position.set(5, 10, 7);
   scene.add(dirLight);
 
-  // Floor Grid
+  // Floor Grid + Room edges
   const grid = new THREE.GridHelper(roomSize, roomSize / 2, 0x444444, 0x222222);
   scene.add(grid);
-
-  // Room Box
   const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(roomSize, roomSize, roomSize));
   const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x333333 }));
   line.position.y = roomSize / 2;
   scene.add(line);
 
-  // GUI Setup
+  // GUI
   gui = new GUI({ title: 'Controls', width: 300 });
-  gui.domElement.style.position = 'absolute';
-  gui.domElement.style.top = '10px';
-  gui.domElement.style.right = '10px';
-
   const env = gui.addFolder('Environment');
   env.addColor(params, 'background').onChange(v => scene.background.set(v));
   env.add(params, 'brightness', 0.2, 2).onChange(v => dirLight.intensity = v);
 
-  const movement = gui.addFolder('Movement');
-  movement.add(params, 'mode', ['Fly', 'Walk']).name('Mode');
-  movement.add(params, 'speedMode', ['Slow', 'Fast']).name('Speed Mode');
-  movement.add(params, 'flySpeed', 1, 30, 0.5).name('Fly Speed');
-  movement.add(params, 'walkSpeed', 1, 15, 0.5).name('Walk Speed');
-  movement.add(params, 'jumpStrength', 0.5, 5, 0.1).name('Jump Height');
+  const move = gui.addFolder('Movement');
+  move.add(params, 'mode', ['Fly', 'Walk']);
+  move.add(params, 'speedMode', ['Slow', 'Fast']);
+  move.add(params, 'flySpeed', 1, 30, 0.5);
+  move.add(params, 'walkSpeed', 1, 15, 0.5);
+  move.add(params, 'jumpStrength', 0.5, 5, 0.1);
 
-  gui.close(); // start collapsed
+  gui.close();
 
-  // Reopen button
-  const reopenBtn = document.createElement('button');
-  reopenBtn.textContent = '⚙️';
-  reopenBtn.style.position = 'absolute';
-  reopenBtn.style.bottom = '10px';
-  reopenBtn.style.right = '10px';
-  reopenBtn.style.background = 'rgba(40,40,40,0.7)';
-  reopenBtn.style.border = 'none';
-  reopenBtn.style.borderRadius = '6px';
-  reopenBtn.style.color = '#fff';
-  reopenBtn.style.fontSize = '18px';
-  reopenBtn.style.cursor = 'pointer';
-  reopenBtn.onclick = () => gui.show(gui._hidden);
-  document.body.appendChild(reopenBtn);
+  // reopen button
+  const reopen = document.createElement('button');
+  reopen.textContent = '⚙️';
+  Object.assign(reopen.style, {
+    position: 'absolute', bottom: '10px', right: '10px',
+    background: 'rgba(40,40,40,0.7)', border: 'none', borderRadius: '6px',
+    color: '#fff', fontSize: '18px', cursor: 'pointer'
+  });
+  reopen.onclick = () => gui.show(gui._hidden);
+  document.body.appendChild(reopen);
 
   setupPointerLock();
   window.addEventListener('resize', onWindowResize);
   animate();
 }
 
-// ---------- Pointer Lock + Keyboard ----------
+// ---------- Pointer Lock ----------
 function setupPointerLock() {
-  const blocker = document.body;
-  blocker.addEventListener('click', () => {
-    renderer.domElement.requestPointerLock();
-  });
-
+  document.body.addEventListener('click', () => renderer.domElement.requestPointerLock());
   document.addEventListener('pointerlockchange', () => {
     pointerLock = document.pointerLockElement === renderer.domElement;
   });
-
+  document.addEventListener('mousemove', onMouseMove);
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('keyup', onKeyUp);
+}
 
-  function onKeyDown(event) {
-    switch (event.code) {
-      case 'ArrowUp':
-      case 'KeyW': moveForward = true; break;
-      case 'ArrowLeft':
-      case 'KeyA': moveLeft = true; break;
-      case 'ArrowDown':
-      case 'KeyS': moveBackward = true; break;
-      case 'ArrowRight':
-      case 'KeyD': moveRight = true; break;
-      case 'Space': moveUp = true; if (params.mode === 'Walk' && onGround) jump(); break;
-      case 'ControlLeft':
-      case 'ControlRight': moveDown = true; break;
-      case 'ShiftLeft':
-      case 'ShiftRight': params.speedMode = 'Fast'; break;
-    }
+function onMouseMove(event) {
+  if (!pointerLock) return;
+  const sensitivity = 0.002;
+  yaw -= event.movementX * sensitivity;
+  pitch -= event.movementY * sensitivity;
+  pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+  camera.rotation.set(pitch, yaw, 0);
+}
+
+// ---------- Keyboard ----------
+function onKeyDown(e) {
+  switch (e.code) {
+    case 'KeyW': moveForward = true; break;
+    case 'KeyA': moveLeft = true; break;
+    case 'KeyS': moveBackward = true; break;
+    case 'KeyD': moveRight = true; break;
+    case 'Space': moveUp = true; if (params.mode === 'Walk' && onGround) jump(); break;
+    case 'ControlLeft':
+    case 'KeyC': moveDown = true; break;
+    case 'ShiftLeft': params.speedMode = 'Fast'; break;
   }
-  function onKeyUp(event) {
-    switch (event.code) {
-      case 'ArrowUp':
-      case 'KeyW': moveForward = false; break;
-      case 'ArrowLeft':
-      case 'KeyA': moveLeft = false; break;
-      case 'ArrowDown':
-      case 'KeyS': moveBackward = false; break;
-      case 'ArrowRight':
-      case 'KeyD': moveRight = false; break;
-      case 'Space': moveUp = false; break;
-      case 'ControlLeft':
-      case 'ControlRight': moveDown = false; break;
-      case 'ShiftLeft':
-      case 'ShiftRight': params.speedMode = 'Slow'; break;
-    }
+}
+function onKeyUp(e) {
+  switch (e.code) {
+    case 'KeyW': moveForward = false; break;
+    case 'KeyA': moveLeft = false; break;
+    case 'KeyS': moveBackward = false; break;
+    case 'KeyD': moveRight = false; break;
+    case 'Space': moveUp = false; break;
+    case 'ControlLeft':
+    case 'KeyC': moveDown = false; break;
+    case 'ShiftLeft': params.speedMode = 'Slow'; break;
   }
 }
 
-// ---------- Jump Logic ----------
+// ---------- Jump ----------
 function jump() {
   velocity.y = params.jumpStrength * 5;
   onGround = false;
@@ -174,56 +188,60 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// ---------- Main Loop ----------
+// ---------- Animate ----------
 function animate() {
   requestAnimationFrame(animate);
-  const delta = 0.016; // fixed timestep for simplicity
+  const delta = 0.016;
 
-  if (pointerLock) {
-    const actualFlySpeed = (params.speedMode === 'Fast' ? 2 : 1) * params.flySpeed;
-    const actualWalkSpeed = (params.speedMode === 'Fast' ? 2 : 1) * params.walkSpeed;
-
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
-    direction.y = Number(moveUp) - Number(moveDown);
-    direction.normalize();
-
-    if (params.mode === 'Fly') {
-      const speed = actualFlySpeed * delta;
-      camera.position.addScaledVector(getCameraDirection(), direction.z * speed);
-      camera.translateX(direction.x * speed);
-      camera.translateY(direction.y * speed);
-    } else {
-      // Walk mode
-      velocity.x -= velocity.x * 10.0 * delta;
-      velocity.z -= velocity.z * 10.0 * delta;
-
-      velocity.y += gravity * delta;
-
-      if (onGround && velocity.y < 0) velocity.y = 0;
-
-      if (moveForward) velocity.z = -actualWalkSpeed;
-      if (moveBackward) velocity.z = actualWalkSpeed;
-      if (moveLeft) velocity.x = -actualWalkSpeed;
-      if (moveRight) velocity.x = actualWalkSpeed;
-
-      camera.position.x += velocity.x * delta;
-      camera.position.z += velocity.z * delta;
-      camera.position.y += velocity.y * delta;
-
-      if (camera.position.y <= 1.6) { // ground level
-        camera.position.y = 1.6;
-        onGround = true;
-      }
-    }
-  }
-
+  if (pointerLock) updateMovement(delta);
   renderer.render(scene, camera);
 }
 
-// ---------- Utility ----------
-function getCameraDirection() {
-  const dir = new THREE.Vector3();
-  camera.getWorldDirection(dir);
-  return dir.normalize();
+// ---------- Movement Update ----------
+function updateMovement(delta) {
+  const speedFactor = params.speedMode === 'Fast' ? 2 : 1;
+  const flySpeed = params.flySpeed * speedFactor * delta;
+  const walkSpeed = params.walkSpeed * speedFactor * delta;
+
+  direction.set(0, 0, 0);
+  if (moveForward) direction.z -= 1;
+  if (moveBackward) direction.z += 1;
+  if (moveLeft) direction.x -= 1;
+  if (moveRight) direction.x += 1;
+  direction.normalize();
+
+  if (params.mode === 'Fly') {
+    const moveVec = new THREE.Vector3();
+    moveVec.x = Math.sin(yaw) * direction.z + Math.cos(yaw) * direction.x;
+    moveVec.z = Math.cos(yaw) * direction.z - Math.sin(yaw) * direction.x;
+    camera.position.addScaledVector(moveVec, flySpeed);
+    if (moveUp) camera.position.y += flySpeed;
+    if (moveDown) camera.position.y -= flySpeed;
+  } else {
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
+    velocity.y += gravity * delta;
+    if (onGround && velocity.y < 0) velocity.y = 0;
+
+    if (moveForward) velocity.z = -walkSpeed * 60 * delta;
+    if (moveBackward) velocity.z = walkSpeed * 60 * delta;
+    if (moveLeft) velocity.x = -walkSpeed * 60 * delta;
+    if (moveRight) velocity.x = walkSpeed * 60 * delta;
+
+    const dir = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    camera.position.x += velocity.x * dir.z + velocity.z * dir.x;
+    camera.position.z += velocity.x * -dir.x + velocity.z * dir.z;
+    camera.position.y += velocity.y * delta;
+
+    if (camera.position.y <= 1.6) { camera.position.y = 1.6; onGround = true; }
+  }
+  applyCollision();
+}
+
+// ---------- Collision ----------
+function applyCollision() {
+  const half = roomSize / 2 - 0.5;
+  camera.position.x = Math.max(-half, Math.min(half, camera.position.x));
+  camera.position.y = Math.max(1, Math.min(roomSize - 1, camera.position.y));
+  camera.position.z = Math.max(-half, Math.min(half, camera.position.z));
 }
