@@ -1,30 +1,61 @@
 // ==============================
-// cubeManager.js  –  Cube Logic
+// cubeManager.js – FINAL CLEAN VERSION
 // ==============================
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 import { makeMaterial } from './materials.js';
 
 let cubes = [];
-export function createCube(scene, ray, ui) {
-  const size = ui.cubeSize;
-  const pos = ray.point.clone().addScaledVector(ray.face.normal, size / 2);
-  pos.divideScalar(size).floor().multiplyScalar(size).addScalar(size / 2);
 
+// --------------------------------------
+// CREATE CUBE
+// --------------------------------------
+export function createCube(scene, ray, ui) {
+  const size = ui?.cubeSize || 1;
   const mat = makeMaterial(ui);
   const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
+
+  let pos = new THREE.Vector3();
+
+  if (ray && ray.point) {
+    pos.copy(ray.point);
+    if (ray.face && ray.face.normal) {
+      pos.addScaledVector(ray.face.normal, size / 2);
+    }
+  } else if (ray && ray.position) {
+    pos.copy(ray.position);
+  } else {
+    pos.set(0, size / 2, 0);
+  }
+
+  // Snap to grid
+  pos.x = Math.round(pos.x / size) * size;
+  pos.y = Math.round(pos.y / size) * size;
+  pos.z = Math.round(pos.z / size) * size;
+
   cube.position.copy(pos);
-  cube.userData.type = ui.cubeType;
+  cube.userData.type = ui?.cubeType || 'Static';
   scene.add(cube);
   cubes.push(cube);
 
-  if (ui.cubeType === 'Gravity') cube.userData.vel = new THREE.Vector3(0, 0, 0);
+  if (cube.userData.type === 'Gravity') {
+    cube.userData.vel = new THREE.Vector3(0, 0, 0);
+  }
+
+  console.log('🧊 Cube created at:', pos);
 }
 
+// --------------------------------------
+// REMOVE CUBE
+// --------------------------------------
 export function removeCube(scene, obj) {
+  if (!obj) return;
   scene.remove(obj);
   cubes = cubes.filter(c => c !== obj);
 }
 
+// --------------------------------------
+// UPDATE CUBES
+// --------------------------------------
 export function updateCubes(dt) {
   for (const c of cubes) {
     if (c.userData.type === 'Gravity') {
