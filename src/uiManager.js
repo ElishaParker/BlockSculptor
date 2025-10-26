@@ -1,10 +1,10 @@
 // ==============================
-// uiManager.js  –  GUI + Crosshair (Fixed)
+// uiManager.js – GUI + Crosshair (Final Stable)
 // ==============================
 import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
-let params, gui, cross;
+let params, gui, cross, horiz, vert, mat;
 
 export function initUI(scene, camera) {
   params = {
@@ -16,7 +16,7 @@ export function initUI(scene, camera) {
     shading: 'Flat',
     reflectivity: 0.2,
     crossVisible: true,
-    crossColor: '#ffffff'
+    crossColor: '#ffffff',
   };
 
   gui = new GUI({ width: 300 });
@@ -33,23 +33,25 @@ export function initUI(scene, camera) {
   f2.addColor(params, 'crossColor');
   gui.close();
 
-  // Create proper crosshair and attach to camera
+  // --- crosshair creation ---
+  mat = new THREE.MeshBasicMaterial({ color: params.crossColor });
   const geoH = new THREE.PlaneGeometry(0.02, 0.002);
   const geoV = new THREE.PlaneGeometry(0.002, 0.02);
-  const mat = new THREE.MeshBasicMaterial({ color: params.crossColor });
-  const horiz = new THREE.Mesh(geoH, mat);
-  const vert = new THREE.Mesh(geoV, mat);
+  horiz = new THREE.Mesh(geoH, mat);
+  vert = new THREE.Mesh(geoV, mat);
   cross = new THREE.Group();
   cross.add(horiz, vert);
-  cross.position.set(0, 0, -1); // center of view
+  cross.position.set(0, 0, -1);
   camera.add(cross);
-  scene.add(camera); // ensure camera (with cross) is in scene
+  scene.add(camera);
 }
 
-export function getUIParams() { return params; }
+export function getUIParams() {
+  return params;
+}
 
 export function updateUI() {
-  if (!cross) return; // prevents undefined errors
+  if (!cross || !mat || !params) return; // prevents undefined errors
+  mat.color.set(params.crossColor);
   cross.visible = params.crossVisible;
-  cross.children.forEach(c => c.material.color.set(params.crossColor));
 }
