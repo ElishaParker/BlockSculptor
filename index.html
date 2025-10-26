@@ -31,11 +31,15 @@
 </head>
 <body>
   <div id="loading">Loading Block Sculptor...</div>
-  <script type="module" src="./src/main.js?v=4.0"></script>
+
+  <!-- Load main orchestrator (forces cache refresh) -->
+  <script type="module" src="./src/main.js?v=4.2"></script>
+
+  <!-- Remove loading screen after full load -->
   <script>
     window.addEventListener('load', () => {
-      const l = document.getElementById('loading');
-      if (l) l.remove();
+      const loader = document.getElementById('loading');
+      if (loader) loader.remove();
     });
   </script>
 </body>
