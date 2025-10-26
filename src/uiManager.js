@@ -53,6 +53,21 @@ export function initUI(scene, camera) {
   crossFolder.add(params, 'crossVisible');
   crossFolder.addColor(params, 'crossColor');
 
+  const roomFolder = gui.addFolder('Room');
+params.roomColors = { floor: '#333333', ceiling: '#222222', walls: '#555555' };
+params.showFloor = true;
+params.showCeiling = true;
+params.showWalls = true;
+params.showGrid = true;
+roomFolder.addColor(params.roomColors, 'floor');
+roomFolder.addColor(params.roomColors, 'ceiling');
+roomFolder.addColor(params.roomColors, 'walls');
+roomFolder.add(params, 'showFloor');
+roomFolder.add(params, 'showCeiling');
+roomFolder.add(params, 'showWalls');
+roomFolder.add(params, 'showGrid');
+
+
   gui.close();
 
   // Crosshair
