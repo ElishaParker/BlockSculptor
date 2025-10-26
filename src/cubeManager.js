@@ -11,42 +11,36 @@ let cubes = [];
 // ----------------------------------------------------
 export function createCube(scene, ray, ui) {
   const size = ui.cubeSize || 1;
-  let pos = new THREE.Vector3();
 
-  // ✅ Flexible input handling
-  if (ray && ray.face && ray.face.normal && ray.point) {
-    // If we have a surface normal (from raycast)
-    pos.copy(ray.point).addScaledVector(ray.face.normal, size / 2);
-  } else if (ray && ray.point) {
-    // If only a point is given
-    pos.copy(ray.point);
-  } else if (ray && ray.position) {
-    // Safety: support alternate structure
-    pos.copy(ray.position);
+  let pos = new THREE.Vector3();
+  if (ray && ray.point) {
+    // use normal only if it exists
+    if (ray.face && ray.face.normal) {
+      pos.copy(ray.point).addScaledVector(ray.face.normal, size / 2);
+    } else {
+      pos.copy(ray.point);
+    }
   } else {
-    console.warn('⚠️ createCube() called with invalid position data:', ray);
+    console.warn('createCube() received bad ray:', ray);
     return;
   }
 
-  // ✅ Snap cube perfectly to grid
+  // snap to grid
   pos.x = Math.round(pos.x / size) * size;
   pos.y = Math.round(pos.y / size) * size;
   pos.z = Math.round(pos.z / size) * size;
 
-  // ✅ Create material + cube mesh
   const mat = makeMaterial(ui);
   const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
   cube.position.copy(pos);
   cube.userData.type = ui.cubeType || 'Static';
 
-  // ✅ Add cube to scene + array
   scene.add(cube);
   cubes.push(cube);
 
-  // ✅ Optional: enable gravity cubes
-  if (cube.userData.type === 'Gravity') {
-    cube.userData.vel = new THREE.Vector3(0, 0, 0);
-  }
+  if (cube.userData.type === 'Gravity') cube.userData.vel = new THREE.Vector3();
+}
+
 
   console.log(`🧊 Cube created at: (${pos.x}, ${pos.y}, ${pos.z})`);
 }
