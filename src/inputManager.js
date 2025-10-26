@@ -121,7 +121,7 @@ if (hits.length > 0) {
     removeCube(scene, hit.object);
     rightClick = false;
   }
-}
+  
 
 
 
