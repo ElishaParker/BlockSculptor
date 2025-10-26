@@ -5,11 +5,11 @@ import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 import { initLighting, updateLighting } from './lightingManager.js';
 import { initUI, getUIParams, updateUI } from './uiManager.js';
 import { initInput, updateInput } from './inputManager.js';
-import { createCube, removeCube, updateCubes } from './cubeManager.js';
+import { updateCubes } from './cubeManager.js';
 
 let scene, camera, renderer;
 let clock = new THREE.Clock();
-let room, walls = {}, grid;
+let walls = {}, grid;
 const roomSize = 50, halfSize = roomSize / 2;
 
 // ---------- Initialization ----------
@@ -24,6 +24,7 @@ function init() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.shadowMap.enabled = true;
+  renderer.setClearColor(0x202020);
   document.body.appendChild(renderer.domElement);
 
   // --- GRID HELPER ---
@@ -69,9 +70,7 @@ function init() {
   // --- LIGHTING + UI + INPUT ---
   initLighting(scene);
   initUI(scene, camera);
-
-  // Updated signature: pass renderer to initInput
-  initInput(renderer.domElement, camera, scene, renderer);
+  initInput(renderer.domElement, camera, scene); // ✅ 3-argument call
 
   window.addEventListener('resize', onResize);
   animate();
