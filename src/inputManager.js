@@ -112,42 +112,41 @@ export function updateInput(dt) {
 // -------------------------------------------
 if (leftClick && ui.action === 'add') {
   const voxelSize = ui.cubeSize;
-  const maxDistance = 30; // how far ahead we can place cubes
+  const maxDistance = 20; // how far ahead we check
   const origin = camera.position.clone();
   const dir = new THREE.Vector3();
-  camera.getWorldDirection(dir);
-
-  // step forward along the ray in voxel increments
-  const step = dir.clone().multiplyScalar(voxelSize);
-  let testPos = origin.clone().addScaledVector(dir, voxelSize); // start one cube ahead
+  camera.getWorldDirection(dir).normalize();
 
   let foundPos = null;
 
-  for (let i = 0; i < maxDistance / voxelSize; i++) {
-    // snap to voxel grid
+  // step forward one voxel at a time
+  for (let d = voxelSize; d <= maxDistance; d += voxelSize) {
+    const testPos = origin.clone().addScaledVector(dir, d);
+
+    // snap to grid
     const snapped = new THREE.Vector3(
       Math.round(testPos.x / voxelSize) * voxelSize,
       Math.round(testPos.y / voxelSize) * voxelSize,
       Math.round(testPos.z / voxelSize) * voxelSize
     );
 
-    // check if a cube already exists here
+    // see if there's already a cube here
     const occupied = scene.children.some(obj =>
       obj.geometry?.type === 'BoxGeometry' &&
-      obj.position.distanceTo(snapped) < voxelSize * 0.1
+      obj.position.distanceTo(snapped) < voxelSize * 0.4
     );
 
     if (!occupied) {
       foundPos = snapped;
       break;
     }
-
-    // move one step further
-    testPos.add(step);
   }
 
   if (foundPos) {
     createCube(scene, { point: foundPos }, ui);
+    console.log('Spawned cube at', foundPos);
+  } else {
+    console.log('No free voxel found ahead!');
   }
 
   leftClick = false;
