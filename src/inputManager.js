@@ -108,23 +108,23 @@ export function updateInput(dt) {
     const hit = hits[0];
 
 // -------------------------------------------
-// Left click → place cube (snap to surface or directly in front)
+// Debug block placement
 // -------------------------------------------
 if (leftClick && ui.action === 'add') {
+  console.log('Left click detected');
   const cubeSize = ui.cubeSize;
   const origin = camera.position.clone();
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir).normalize();
 
-  // --- 1. Raycast from crosshair ---
   const raycaster = new THREE.Raycaster();
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
   const hits = raycaster.intersectObjects(scene.children, false);
+  console.log('Hits:', hits.length);
 
   let spawnPos = null;
 
   if (hits.length > 0) {
-    // --- 2. Snap to the cube surface you’re looking at ---
     const hit = hits[0];
     const normal = hit.face.normal.clone();
     const pos = hit.object.position.clone().addScaledVector(normal, cubeSize);
@@ -133,21 +133,27 @@ if (leftClick && ui.action === 'add') {
       Math.round(pos.y / cubeSize) * cubeSize,
       Math.round(pos.z / cubeSize) * cubeSize
     );
+    console.log('Surface hit → spawnPos', spawnPos);
   } else {
-    // --- 3. Fallback: no hit, place directly in front of camera ---
     const front = origin.clone().addScaledVector(dir, cubeSize);
     spawnPos = new THREE.Vector3(
       Math.round(front.x / cubeSize) * cubeSize,
       Math.round(front.y / cubeSize) * cubeSize,
       Math.round(front.z / cubeSize) * cubeSize
     );
+    console.log('No hit → fallback spawnPos', spawnPos);
   }
 
-  // --- 4. Spawn cube ---
-  createCube(scene, { point: spawnPos }, ui);
+  if (spawnPos) {
+    createCube(scene, { point: spawnPos }, ui);
+    console.log('Cube created at', spawnPos);
+  } else {
+    console.warn('spawnPos was null — createCube not called');
+  }
+
   leftClick = false;
-  console.log('Cube placed at', spawnPos);
 }
+
 
 
 
