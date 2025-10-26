@@ -107,28 +107,48 @@ export function updateInput(dt) {
   if (hits.length > 0) {
     const hit = hits[0];
 
-    // Left click → place cube
+// -------------------------------------------
+// Left click → place cube (snap to surface or directly in front)
+// -------------------------------------------
 if (leftClick && ui.action === 'add') {
   const cubeSize = ui.cubeSize;
   const origin = camera.position.clone();
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir).normalize();
 
-  // Step one cube ahead of the camera
-  const frontPoint = origin.clone().addScaledVector(dir, cubeSize);
+  // --- 1. Raycast from crosshair ---
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const hits = raycaster.intersectObjects(scene.children, false);
 
-  // Snap to nearest voxel center
-  const snapped = new THREE.Vector3(
-    Math.round(frontPoint.x / cubeSize) * cubeSize,
-    Math.round(frontPoint.y / cubeSize) * cubeSize,
-    Math.round(frontPoint.z / cubeSize) * cubeSize
-  );
+  let spawnPos = null;
 
-  createCube(scene, { point: snapped }, ui);
+  if (hits.length > 0) {
+    // --- 2. Snap to the cube surface you’re looking at ---
+    const hit = hits[0];
+    const normal = hit.face.normal.clone();
+    const pos = hit.object.position.clone().addScaledVector(normal, cubeSize);
+    spawnPos = new THREE.Vector3(
+      Math.round(pos.x / cubeSize) * cubeSize,
+      Math.round(pos.y / cubeSize) * cubeSize,
+      Math.round(pos.z / cubeSize) * cubeSize
+    );
+  } else {
+    // --- 3. Fallback: no hit, place directly in front of camera ---
+    const front = origin.clone().addScaledVector(dir, cubeSize);
+    spawnPos = new THREE.Vector3(
+      Math.round(front.x / cubeSize) * cubeSize,
+      Math.round(front.y / cubeSize) * cubeSize,
+      Math.round(front.z / cubeSize) * cubeSize
+    );
+  }
+
+  // --- 4. Spawn cube ---
+  createCube(scene, { point: spawnPos }, ui);
   leftClick = false;
-
-  console.log('Placed cube at', snapped);
+  console.log('Cube placed at', spawnPos);
 }
+
 
 
 
