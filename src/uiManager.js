@@ -1,10 +1,10 @@
 // ==============================
-// uiManager.js – GUI + Crosshair (Race-Free Final)
+// uiManager.js – GUI + Crosshair (Guaranteed Stable)
 // ==============================
 import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
-let params, gui, cross, mat, created = false;
+let params, gui, cross = null, horiz = null, vert = null;
 
 export function initUI(scene, camera) {
   params = {
@@ -33,20 +33,16 @@ export function initUI(scene, camera) {
   f2.addColor(params, 'crossColor');
   gui.close();
 
-  // build crosshair one frame later to ensure camera exists
-  requestAnimationFrame(() => {
-    mat = new THREE.MeshBasicMaterial({ color: params.crossColor });
-    const geoH = new THREE.PlaneGeometry(0.02, 0.002);
-    const geoV = new THREE.PlaneGeometry(0.002, 0.02);
-    const horiz = new THREE.Mesh(geoH, mat);
-    const vert = new THREE.Mesh(geoV, mat);
-    cross = new THREE.Group();
-    cross.add(horiz, vert);
-    cross.position.set(0, 0, -1);
-    camera.add(cross);
-    scene.add(camera);
-    created = true;
-  });
+  // --- create crosshair immediately ---
+  const matH = new THREE.MeshBasicMaterial({ color: params.crossColor });
+  const matV = new THREE.MeshBasicMaterial({ color: params.crossColor });
+  horiz = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 0.002), matH);
+  vert = new THREE.Mesh(new THREE.PlaneGeometry(0.002, 0.02), matV);
+  cross = new THREE.Group();
+  cross.add(horiz, vert);
+  cross.position.set(0, 0, -1);
+  camera.add(cross);
+  scene.add(camera);
 }
 
 export function getUIParams() {
@@ -54,7 +50,8 @@ export function getUIParams() {
 }
 
 export function updateUI() {
-  if (!created || !mat || !params) return;
-  mat.color.set(params.crossColor);
-  cross.visible = params.crossVisible;
+  if (!cross || !horiz || !vert) return; // double guard
+  horiz.material.color.set(getUIParams().crossColor);
+  vert.material.color.set(getUIParams().crossColor);
+  cross.visible = getUIParams().crossVisible;
 }
