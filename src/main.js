@@ -9,7 +9,8 @@ import { createCube, removeCube, updateCubes } from './cubeManager.js';
 
 let scene, camera, renderer;
 let clock = new THREE.Clock();
-let room, walls = {}, grid, roomSize = 50, halfSize = roomSize / 2;
+let room, walls = {}, grid;
+const roomSize = 50, halfSize = roomSize / 2;
 
 // ---------- Initialization ----------
 init();
@@ -21,6 +22,8 @@ function init() {
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
   // --- GRID HELPER ---
@@ -44,25 +47,21 @@ function init() {
 
   // Back wall
   walls.back = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), wallMat);
-  walls.back.position.z = -halfSize;
-  walls.back.position.y = halfSize;
+  walls.back.position.set(0, halfSize, -halfSize);
   walls.back.rotation.y = Math.PI;
 
   // Front wall
   walls.front = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), wallMat);
-  walls.front.position.z = halfSize;
-  walls.front.position.y = halfSize;
+  walls.front.position.set(0, halfSize, halfSize);
 
   // Left wall
   walls.left = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), wallMat);
-  walls.left.position.x = -halfSize;
-  walls.left.position.y = halfSize;
+  walls.left.position.set(-halfSize, halfSize, 0);
   walls.left.rotation.y = Math.PI / 2;
 
   // Right wall
   walls.right = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), wallMat);
-  walls.right.position.x = halfSize;
-  walls.right.position.y = halfSize;
+  walls.right.position.set(halfSize, halfSize, 0);
   walls.right.rotation.y = -Math.PI / 2;
 
   Object.values(walls).forEach(w => scene.add(w));
@@ -70,7 +69,9 @@ function init() {
   // --- LIGHTING + UI + INPUT ---
   initLighting(scene);
   initUI(scene, camera);
-  initInput(renderer.domElement, camera, scene);
+
+  // Updated signature: pass renderer to initInput
+  initInput(renderer.domElement, camera, scene, renderer);
 
   window.addEventListener('resize', onResize);
   animate();
@@ -110,7 +111,6 @@ function updateRoomVisuals() {
   const ui = getUIParams();
   if (!ui) return;
 
-  // Room colors and visibility
   if (ui.roomColors) {
     walls.floor.material.color.set(ui.roomColors.floor);
     walls.ceiling.material.color.set(ui.roomColors.ceiling);
@@ -122,7 +122,10 @@ function updateRoomVisuals() {
 
   walls.floor.visible = ui.showFloor;
   walls.ceiling.visible = ui.showCeiling;
-  walls.front.visible = walls.back.visible = walls.left.visible = walls.right.visible = ui.showWalls;
+  walls.front.visible =
+  walls.back.visible =
+  walls.left.visible =
+  walls.right.visible = ui.showWalls;
   grid.visible = ui.showGrid;
 }
 
