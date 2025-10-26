@@ -46,6 +46,8 @@ export function initUI(scene, camera) {
   moveFolder.add(params, 'FlySpeed', 1, 30, 1);
   moveFolder.add(params, 'WalkSpeed', 1, 30, 1);
   moveFolder.add(params, 'JumpHeight', 0.5, 10, 0.5);
+  moveFolder.add(params, 'sensitivity', 0.001, 0.01, 0.0005);
+
 
   const crossFolder = gui.addFolder('Crosshair');
   crossFolder.add(params, 'crossVisible');
