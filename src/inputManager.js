@@ -107,16 +107,23 @@ export function updateInput(dt) {
   if (hits.length > 0) {
     const hit = hits[0];
 
-    // Left click → place cube
-    if (leftClick && ui.action === 'add') {
-      const normal = hit.face.normal.clone();
-      const pos = hit.point.clone().addScaledVector(normal, ui.cubeSize / 2);
-      pos.x = Math.round(pos.x / ui.cubeSize) * ui.cubeSize;
-      pos.y = Math.round(pos.y / ui.cubeSize) * ui.cubeSize;
-      pos.z = Math.round(pos.z / ui.cubeSize) * ui.cubeSize;
-      createCube(scene, { point: pos, face: hit.face }, ui);
-      leftClick = false;
-    }
+   // Left click → place cube
+if (leftClick && ui.action === 'add') {
+  const normal = hit.face.normal.clone();
+  const cubeSize = ui.cubeSize;
+
+  // Spawn one cube-length *toward the camera* instead of beyond the wall
+  const pos = hit.point.clone().addScaledVector(normal, -cubeSize / 2);
+
+  // Snap position cleanly to grid
+  pos.x = Math.round(pos.x / cubeSize) * cubeSize;
+  pos.y = Math.round(pos.y / cubeSize) * cubeSize;
+  pos.z = Math.round(pos.z / cubeSize) * cubeSize;
+
+  createCube(scene, { point: pos, face: hit.face }, ui);
+  leftClick = false;
+}
+
 
     // Right click → remove cube
     if (rightClick && ui.action === 'remove' && hit.object.geometry.type === 'BoxGeometry') {
