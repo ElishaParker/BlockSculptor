@@ -65,8 +65,8 @@ export function updateInput(dt) {
   const speed = (mode === 'Fly' ? flySpeed : walkSpeed) * dt;
   const dir = new THREE.Vector3();
 
-  if (keys['KeyW']) dir.z -= 1;
-  if (keys['KeyS']) dir.z += 1;
+  if (keys['KeyS']) dir.z -= 1;
+  if (keys['KeyW']) dir.z += 1;
   if (keys['KeyA']) dir.x -= 1;
   if (keys['KeyD']) dir.x += 1;
 
