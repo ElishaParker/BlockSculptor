@@ -106,16 +106,30 @@ export function updateInput(dt) {
 
   if (hits.length > 0) {
     const hit = hits[0];
-// Left click → place cube
+
+    // Left click → place cube
 if (leftClick && ui.action === 'add') {
-const normal = hit.face.normal.clone();
-const pos = hit.point.clone().addScaledVector(normal, ui.cubeSize / 2);
-pos.x = Math.round(pos.x / ui.cubeSize) * ui.cubeSize;
-pos.y = Math.round(pos.y / ui.cubeSize) * ui.cubeSize;
-pos.z = Math.round(pos.z / ui.cubeSize) * ui.cubeSize;
-createCube(scene, { point: pos, face: hit.face }, ui);
-leftClick = false;
+  const cubeSize = ui.cubeSize;
+  const origin = camera.position.clone();
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir).normalize();
+
+  // Step one cube ahead of the camera
+  const frontPoint = origin.clone().addScaledVector(dir, cubeSize);
+
+  // Snap to nearest voxel center
+  const snapped = new THREE.Vector3(
+    Math.round(frontPoint.x / cubeSize) * cubeSize,
+    Math.round(frontPoint.y / cubeSize) * cubeSize,
+    Math.round(frontPoint.z / cubeSize) * cubeSize
+  );
+
+  createCube(scene, { point: snapped }, ui);
+  leftClick = false;
+
+  console.log('Placed cube at', snapped);
 }
+
 
 
 
