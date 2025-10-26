@@ -1,14 +1,21 @@
 // ==============================
 // cubeManager.js  –  Cube Logic
 // ==============================
-import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
-import { makeMaterial } from './materials.js';
-
-let cubes = [];
 export function createCube(scene, ray, ui) {
   const size = ui.cubeSize;
-  const pos = ray.point.clone().addScaledVector(ray.face.normal, size / 2);
-  pos.divideScalar(size).floor().multiplyScalar(size).addScalar(size / 2);
+
+  // Safely compute position even if ray.face is missing
+  let pos;
+  if (ray.face && ray.face.normal) {
+    pos = ray.point.clone().addScaledVector(ray.face.normal, size / 2);
+  } else {
+    pos = ray.point.clone();
+  }
+
+  // Snap to grid
+  pos.x = Math.round(pos.x / size) * size;
+  pos.y = Math.round(pos.y / size) * size;
+  pos.z = Math.round(pos.z / size) * size;
 
   const mat = makeMaterial(ui);
   const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
@@ -19,6 +26,7 @@ export function createCube(scene, ray, ui) {
 
   if (ui.cubeType === 'Gravity') cube.userData.vel = new THREE.Vector3(0, 0, 0);
 }
+
 
 export function removeCube(scene, obj) {
   scene.remove(obj);
