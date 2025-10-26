@@ -184,15 +184,3 @@ if (leftClick && ui.action === 'add') {
       rightClick = false;
     }
   }
-
-
-// -----------------------------------------------
-// Optional helper for debugging ray data
-// -----------------------------------------------
-export function getRaycastData() {
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const hits = raycaster.intersectObjects(scene.children, false);
-  if (hits.length)
-    return { hit: true, point: hits[0].point, face: hits[0].face, object: hits[0].object };
-  return null;
-}
