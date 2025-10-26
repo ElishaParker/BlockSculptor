@@ -104,8 +104,23 @@ export function updateInput(dt) {
   raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
   const hits = raycaster.intersectObjects(scene.children, false);
 
-  if (hits.length > 0) {
-    const hit = hits[0];
+if (hits.length > 0) {
+  const hit = hits[0];
+
+  // make sure face and normal exist
+  if (hit.face && hit.face.normal) {
+    const normal = hit.face.normal.clone();
+    const pos = hit.object.position.clone().addScaledVector(normal, ui.cubeSize);
+    spawnPos = new THREE.Vector3(
+      Math.round(pos.x / ui.cubeSize) * ui.cubeSize,
+      Math.round(pos.y / ui.cubeSize) * ui.cubeSize,
+      Math.round(pos.z / ui.cubeSize) * ui.cubeSize
+    );
+  } else {
+    console.warn('⚠️ Ray hit without face.normal:', hit);
+  }
+}
+
 
 // -------------------------------------------
 // Debug block placement
