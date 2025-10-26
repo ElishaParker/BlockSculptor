@@ -1,11 +1,11 @@
 // ==============================
-// inputManager.js – Pointer Lock + Cube Placement (fixed)
+// inputManager.js – Pointer Lock + Cube Placement (stable)
 // ==============================
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 import { getUIParams } from './uiManager.js';
 import { createCube, removeCube } from './cubeManager.js';
 
-let camera, scene, raycaster, renderer;
+let camera, scene, raycaster;
 let keys = {};
 let velocityY = 0;
 let yaw = 0, pitch = 0;
@@ -13,10 +13,12 @@ let sensitivity = 0.0025;
 let pointerLocked = false;
 let leftClick = false, rightClick = false;
 
-export function initInput(canvas, cam, scn, rend) {
+// -----------------------------------------------
+// INIT
+// -----------------------------------------------
+export function initInput(canvas, cam, scn) {
   camera = cam;
   scene = scn;
-  renderer = rend;
   raycaster = new THREE.Raycaster();
 
   // --- pointer lock setup ---
@@ -32,7 +34,7 @@ export function initInput(canvas, cam, scn, rend) {
   document.addEventListener('mousemove', e => {
     if (!pointerLocked) return;
     const ui = getUIParams();
-    const sens = ui.sensitivity ?? sensitivity;
+    const sens = ui?.sensitivity ?? sensitivity;
     yaw -= e.movementX * sens;
     pitch -= e.movementY * sens;
     pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
@@ -43,22 +45,25 @@ export function initInput(canvas, cam, scn, rend) {
   window.addEventListener('keydown', e => keys[e.code] = true);
   window.addEventListener('keyup', e => keys[e.code] = false);
 
-// --- mouse clicks (bind to canvas) ---
-canvas.addEventListener('mousedown', e => {
-  if (e.button === 0) leftClick = true;
-  if (e.button === 2) rightClick = true;
-});
-canvas.addEventListener('mouseup', e => {
-  if (e.button === 0) leftClick = false;
-  if (e.button === 2) rightClick = false;
-});
-canvas.addEventListener('contextmenu', e => e.preventDefault());
+  // --- mouse clicks (bind to canvas) ---
+  canvas.addEventListener('mousedown', e => {
+    if (e.button === 0) leftClick = true;
+    if (e.button === 2) rightClick = true;
+  });
+  canvas.addEventListener('mouseup', e => {
+    if (e.button === 0) leftClick = false;
+    if (e.button === 2) rightClick = false;
+  });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+}
 
 // -----------------------------------------------
 // UPDATE LOOP
 // -----------------------------------------------
 export function updateInput(dt) {
   const ui = getUIParams();
+  if (!ui) return;
+
   const mode = ui.Mode;
   const gravityEnabled = ui.Gravity;
   const flySpeed = ui.FlySpeed;
