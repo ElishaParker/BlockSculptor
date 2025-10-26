@@ -1,10 +1,11 @@
 // ==============================
-// uiManager.js  –  GUI + Crosshair
+// uiManager.js  –  GUI + Crosshair (Fixed)
 // ==============================
 import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
 let params, gui, cross;
+
 export function initUI(scene, camera) {
   params = {
     action: 'add',
@@ -17,6 +18,7 @@ export function initUI(scene, camera) {
     crossVisible: true,
     crossColor: '#ffffff'
   };
+
   gui = new GUI({ width: 300 });
   const f1 = gui.addFolder('Cube');
   f1.add(params, 'action', ['add', 'remove']);
@@ -30,17 +32,24 @@ export function initUI(scene, camera) {
   f2.add(params, 'crossVisible');
   f2.addColor(params, 'crossColor');
   gui.close();
-  makeCross();
-}
-export function getUIParams() { return params; }
-export function updateUI() { if (cross) { cross.visible = params.crossVisible; cross.material.color.set(params.crossColor); } }
-function makeCross() {
-  cross = new THREE.Group();
-  const geo = new THREE.PlaneGeometry(0.02, 0.002);
+
+  // Create proper crosshair and attach to camera
+  const geoH = new THREE.PlaneGeometry(0.02, 0.002);
+  const geoV = new THREE.PlaneGeometry(0.002, 0.02);
   const mat = new THREE.MeshBasicMaterial({ color: params.crossColor });
-  const h = new THREE.Mesh(geo, mat), v = new THREE.Mesh(geo, mat);
-  v.rotation.z = Math.PI / 2;
-  cross.add(h, v);
-  const cam = document.querySelector('canvas').__camera__;
-  document.querySelector('canvas').__cross__ = cross;
+  const horiz = new THREE.Mesh(geoH, mat);
+  const vert = new THREE.Mesh(geoV, mat);
+  cross = new THREE.Group();
+  cross.add(horiz, vert);
+  cross.position.set(0, 0, -1); // center of view
+  camera.add(cross);
+  scene.add(camera); // ensure camera (with cross) is in scene
+}
+
+export function getUIParams() { return params; }
+
+export function updateUI() {
+  if (!cross) return; // prevents undefined errors
+  cross.visible = params.crossVisible;
+  cross.children.forEach(c => c.material.color.set(params.crossColor));
 }
