@@ -106,29 +106,15 @@ export function updateInput(dt) {
 
   if (hits.length > 0) {
     const hit = hits[0];
-// mouse click cube generation
+// Left click → place cube
 if (leftClick && ui.action === 'add') {
-  const voxelSize = ui.cubeSize;
-  const origin = camera.position.clone();
-  const dir = new THREE.Vector3();
-  camera.getWorldDirection(dir).normalize();
-
-  // Log direction for debugging
-  console.log('Camera position:', origin);
-  console.log('Camera direction:', dir);
-
-  // Always place exactly one cube in front of camera
-  const spawnPos = origin.clone().addScaledVector(dir, voxelSize * 2);
-  const snapped = new THREE.Vector3(
-    Math.round(spawnPos.x / voxelSize) * voxelSize,
-    Math.round(spawnPos.y / voxelSize) * voxelSize,
-    Math.round(spawnPos.z / voxelSize) * voxelSize
-  );
-
-  createCube(scene, { point: snapped }, ui);
-  console.log('Spawned cube at', snapped);
-
-  leftClick = false;
+const normal = hit.face.normal.clone();
+const pos = hit.point.clone().addScaledVector(normal, ui.cubeSize / 2);
+pos.x = Math.round(pos.x / ui.cubeSize) * ui.cubeSize;
+pos.y = Math.round(pos.y / ui.cubeSize) * ui.cubeSize;
+pos.z = Math.round(pos.z / ui.cubeSize) * ui.cubeSize;
+createCube(scene, { point: pos, face: hit.face }, ui);
+leftClick = false;
 }
 
 
