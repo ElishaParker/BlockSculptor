@@ -100,26 +100,29 @@ export function updateInput(dt) {
     .multiplyScalar(speed);
   camera.position.add(move);
 
-  // --- Raycast from crosshair ---
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const hits = raycaster.intersectObjects(scene.children, false);
+// --- Raycast from crosshair ---
+raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+const hits = raycaster.intersectObjects(scene.children, false);
 
 if (hits.length > 0) {
   const hit = hits[0];
 
-  // make sure face and normal exist
-  if (hit.face && hit.face.normal) {
-    const normal = hit.face.normal.clone();
-    const pos = hit.object.position.clone().addScaledVector(normal, ui.cubeSize);
-    spawnPos = new THREE.Vector3(
-      Math.round(pos.x / ui.cubeSize) * ui.cubeSize,
-      Math.round(pos.y / ui.cubeSize) * ui.cubeSize,
-      Math.round(pos.z / ui.cubeSize) * ui.cubeSize
-    );
-  } else {
-    console.warn('⚠️ Ray hit without face.normal:', hit);
+  if (leftClick) {
+    // Defensive: only use normal if valid
+    const safeRay = {
+      point: hit.point.clone(),
+      face: hit.face && hit.face.normal ? hit.face : null
+    };
+    createCube(scene, safeRay, ui);
+    leftClick = false;
+  }
+
+  if (rightClick && hit.object?.geometry?.type === 'BoxGeometry') {
+    removeCube(scene, hit.object);
+    rightClick = false;
   }
 }
+
 
 
 // -------------------------------------------
