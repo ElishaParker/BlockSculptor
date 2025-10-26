@@ -106,51 +106,27 @@ export function updateInput(dt) {
 
   if (hits.length > 0) {
     const hit = hits[0];
-
-// -------------------------------------------
-// Left click → place cube directly in front or on first empty voxel
-// -------------------------------------------
+// mouse click cube generation
 if (leftClick && ui.action === 'add') {
   const voxelSize = ui.cubeSize;
-  const maxDistance = 20;
   const origin = camera.position.clone();
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir).normalize();
 
-  let foundPos = null;
+  // Log direction for debugging
+  console.log('Camera position:', origin);
+  console.log('Camera direction:', dir);
 
-  for (let d = voxelSize; d <= maxDistance; d += voxelSize) {
-    const testPos = origin.clone().addScaledVector(dir, d);
+  // Always place exactly one cube in front of camera
+  const spawnPos = origin.clone().addScaledVector(dir, voxelSize * 2);
+  const snapped = new THREE.Vector3(
+    Math.round(spawnPos.x / voxelSize) * voxelSize,
+    Math.round(spawnPos.y / voxelSize) * voxelSize,
+    Math.round(spawnPos.z / voxelSize) * voxelSize
+  );
 
-    // Snap to grid
-    const snapped = new THREE.Vector3(
-      Math.round(testPos.x / voxelSize) * voxelSize,
-      Math.round(testPos.y / voxelSize) * voxelSize,
-      Math.round(testPos.z / voxelSize) * voxelSize
-    );
-
-    // Check if already occupied
-    const occupied = scene.children.some(obj =>
-      obj.geometry?.type === 'BoxGeometry' &&
-      obj.position.distanceTo(snapped) < voxelSize * 0.45
-    );
-
-    if (!occupied) {
-      foundPos = snapped;
-      break;
-    }
-  }
-
-  // ✅ Fallback: if no voxel found, place one directly ahead
-  if (!foundPos) {
-    foundPos = origin.clone().addScaledVector(dir, voxelSize);
-    foundPos.x = Math.round(foundPos.x / voxelSize) * voxelSize;
-    foundPos.y = Math.round(foundPos.y / voxelSize) * voxelSize;
-    foundPos.z = Math.round(foundPos.z / voxelSize) * voxelSize;
-  }
-
-  createCube(scene, { point: foundPos }, ui);
-  console.log('Cube placed at', foundPos);
+  createCube(scene, { point: snapped }, ui);
+  console.log('Spawned cube at', snapped);
 
   leftClick = false;
 }
