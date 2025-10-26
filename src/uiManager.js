@@ -1,99 +1,59 @@
 // ==============================
-// uiManager.js – Unified GUI Controller
+// inputManager.js – Movement + Raycast (Full Integration)
 // ==============================
-import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
-import { applyEnvironmentChanges } from './lightingManager.js';
+import { getUIParams } from './uiManager.js';
 
-let params, gui, cross, horiz, vert;
-let sceneRef, camRef;
+let camera, scene, raycaster;
+let keys = {};
+let velocityY = 0;
 
-export function initUI(scene, camera) {
-  sceneRef = scene;
-  camRef = camera;
+export function initInput(el, cam, scn) {
+  camera = cam;
+  scene = scn;
+  raycaster = new THREE.Raycaster();
 
-  params = {
-    // --- Environment ---
-    background: '#000000',
-    brightness: 1.0,
-
-    // --- Cube ---
-    action: 'add',
-    cubeSize: 1,
-    cubeColor: '#88ccff',
-    cubeTransparency: 0,
-    cubeType: 'Static',
-    shading: 'Flat',
-    reflectivity: 0.2,
-
-    // --- Crosshair ---
-    crossVisible: true,
-    crossColor: '#ffffff',
-
-    // --- Movement ---
-    Mode: 'Fly',
-    Gravity: false,
-    FlySpeed: 10,
-    WalkSpeed: 5,
-    JumpHeight: 2.5
-  };
-
-  gui = new GUI({ width: 300 });
-  gui.title('Controls');
-
-  // ENVIRONMENT
-  const env = gui.addFolder('Environment');
-  env.addColor(params, 'background').onChange(() => {
-    sceneRef.background = new THREE.Color(params.background);
-  });
-  env.add(params, 'brightness', 0.1, 2, 0.01).onChange(() => {
-    applyEnvironmentChanges(sceneRef, params);
-  });
-
-  // CUBE
-  const cube = gui.addFolder('Cube');
-  cube.add(params, 'action', ['add', 'remove']);
-  cube.add(params, 'cubeSize', 0.25, 4, 0.25);
-  cube.addColor(params, 'cubeColor');
-  cube.add(params, 'cubeTransparency', 0, 1, 0.01);
-  cube.add(params, 'cubeType', ['Static', 'Gravity']);
-  cube.add(params, 'shading', ['Flat', 'Smooth']);
-  cube.add(params, 'reflectivity', 0, 1, 0.01);
-
-  // CROSSHAIR
-  const crossFolder = gui.addFolder('Crosshair');
-  crossFolder.add(params, 'crossVisible');
-  crossFolder.addColor(params, 'crossColor');
-
-  // MOVEMENT
-  const move = gui.addFolder('Movement');
-  move.add(params, 'Mode', ['Fly', 'Walk']);
-  move.add(params, 'Gravity');
-  move.add(params, 'FlySpeed', 1, 50, 0.5);
-  move.add(params, 'WalkSpeed', 1, 20, 0.5);
-  move.add(params, 'JumpHeight', 1, 10, 0.5);
-
-  gui.close();
-
-  // --- Crosshair setup ---
-  const matH = new THREE.MeshBasicMaterial({ color: params.crossColor });
-  const matV = new THREE.MeshBasicMaterial({ color: params.crossColor });
-  const geoH = new THREE.PlaneGeometry(0.02, 0.002);
-  const geoV = new THREE.PlaneGeometry(0.002, 0.02);
-  horiz = new THREE.Mesh(geoH, matH);
-  vert = new THREE.Mesh(geoV, matV);
-  cross = new THREE.Group();
-  cross.add(horiz, vert);
-  cross.position.set(0, 0, -1);
-  camera.add(cross);
-  scene.add(camera);
+  window.addEventListener('keydown', e => keys[e.code] = true);
+  window.addEventListener('keyup', e => keys[e.code] = false);
 }
 
-export function getUIParams() { return params; }
+export function updateInput(dt) {
+  const ui = getUIParams();
+  const mode = ui.Mode;
+  const gravityEnabled = ui.Gravity;
+  const flySpeed = ui.FlySpeed;
+  const walkSpeed = ui.WalkSpeed;
+  const jumpHeight = ui.JumpHeight;
 
-export function updateUI() {
-  if (!cross) return;
-  horiz.material.color.set(params.crossColor);
-  vert.material.color.set(params.crossColor);
-  cross.visible = params.crossVisible;
+  const speed = (mode === 'Fly' ? flySpeed : walkSpeed) * dt;
+  const dir = new THREE.Vector3();
+
+  // Basic direction
+  if (keys['KeyW']) dir.z -= 1;
+  if (keys['KeyS']) dir.z += 1;
+  if (keys['KeyA']) dir.x -= 1;
+  if (keys['KeyD']) dir.x += 1;
+
+  if (mode === 'Fly') {
+    if (keys['Space']) dir.y += 1;
+    if (keys['KeyC'] || keys['ControlLeft'] || keys['ShiftLeft']) dir.y -= 1;
+  } else {
+    // Walk mode with gravity + jump
+    if (keys['Space'] && camera.position.y <= 1.51) velocityY = jumpHeight;
+    if (gravityEnabled) velocityY -= 9.8 * dt;
+    camera.position.y += velocityY * dt;
+    if (camera.position.y < 1.5) { camera.position.y = 1.5; velocityY = 0; }
+  }
+
+  dir.normalize();
+  const mat = new THREE.Matrix4().extractRotation(camera.matrix);
+  dir.applyMatrix4(mat);
+  camera.position.addScaledVector(dir, speed);
+}
+
+export function getRaycastData() {
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const hits = raycaster.intersectObjects(scene.children, false);
+  if (hits.length) return { hit: true, point: hits[0].point, face: hits[0].face, object: hits[0].object };
+  return null;
 }
