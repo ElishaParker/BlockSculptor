@@ -108,32 +108,31 @@ export function updateInput(dt) {
     const hit = hits[0];
 
 // -------------------------------------------
-// Left click → place cube at first empty voxel ahead
+// Left click → place cube directly in front or on first empty voxel
 // -------------------------------------------
 if (leftClick && ui.action === 'add') {
   const voxelSize = ui.cubeSize;
-  const maxDistance = 20; // how far ahead we check
+  const maxDistance = 20;
   const origin = camera.position.clone();
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir).normalize();
 
   let foundPos = null;
 
-  // step forward one voxel at a time
   for (let d = voxelSize; d <= maxDistance; d += voxelSize) {
     const testPos = origin.clone().addScaledVector(dir, d);
 
-    // snap to grid
+    // Snap to grid
     const snapped = new THREE.Vector3(
       Math.round(testPos.x / voxelSize) * voxelSize,
       Math.round(testPos.y / voxelSize) * voxelSize,
       Math.round(testPos.z / voxelSize) * voxelSize
     );
 
-    // see if there's already a cube here
+    // Check if already occupied
     const occupied = scene.children.some(obj =>
       obj.geometry?.type === 'BoxGeometry' &&
-      obj.position.distanceTo(snapped) < voxelSize * 0.4
+      obj.position.distanceTo(snapped) < voxelSize * 0.45
     );
 
     if (!occupied) {
@@ -142,12 +141,16 @@ if (leftClick && ui.action === 'add') {
     }
   }
 
-  if (foundPos) {
-    createCube(scene, { point: foundPos }, ui);
-    console.log('Spawned cube at', foundPos);
-  } else {
-    console.log('No free voxel found ahead!');
+  // ✅ Fallback: if no voxel found, place one directly ahead
+  if (!foundPos) {
+    foundPos = origin.clone().addScaledVector(dir, voxelSize);
+    foundPos.x = Math.round(foundPos.x / voxelSize) * voxelSize;
+    foundPos.y = Math.round(foundPos.y / voxelSize) * voxelSize;
+    foundPos.z = Math.round(foundPos.z / voxelSize) * voxelSize;
   }
+
+  createCube(scene, { point: foundPos }, ui);
+  console.log('Cube placed at', foundPos);
 
   leftClick = false;
 }
