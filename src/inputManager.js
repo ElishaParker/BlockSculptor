@@ -43,17 +43,16 @@ export function initInput(canvas, cam, scn, rend) {
   window.addEventListener('keydown', e => keys[e.code] = true);
   window.addEventListener('keyup', e => keys[e.code] = false);
 
-  // --- mouse clicks (bind to renderer canvas) ---
-  renderer.domElement.addEventListener('mousedown', e => {
-    if (e.button === 0) leftClick = true;
-    if (e.button === 2) rightClick = true;
-  });
-  renderer.domElement.addEventListener('mouseup', e => {
-    if (e.button === 0) leftClick = false;
-    if (e.button === 2) rightClick = false;
-  });
-  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
-}
+// --- mouse clicks (bind to canvas) ---
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 0) leftClick = true;
+  if (e.button === 2) rightClick = true;
+});
+canvas.addEventListener('mouseup', e => {
+  if (e.button === 0) leftClick = false;
+  if (e.button === 2) rightClick = false;
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 // -----------------------------------------------
 // UPDATE LOOP
