@@ -108,51 +108,51 @@ export function updateInput(dt) {
     const hit = hits[0];
 
 // -------------------------------------------
-// Left click → place cube at nearest voxel
+// Left click → place cube at first empty voxel ahead
 // -------------------------------------------
 if (leftClick && ui.action === 'add') {
   const voxelSize = ui.cubeSize;
-  const roomHalf = 25; // matches your room size / 2
+  const maxDistance = 30; // how far ahead we can place cubes
   const origin = camera.position.clone();
   const dir = new THREE.Vector3();
   camera.getWorldDirection(dir);
 
-  // Find nearest voxel along ray
-  let closest = null;
-  let minDist = Infinity;
+  // step forward along the ray in voxel increments
+  const step = dir.clone().multiplyScalar(voxelSize);
+  let testPos = origin.clone().addScaledVector(dir, voxelSize); // start one cube ahead
 
-  for (let x = -roomHalf; x < roomHalf; x += voxelSize) {
-    for (let y = 0; y < roomSize; y += voxelSize) {
-      for (let z = -roomHalf; z < roomHalf; z += voxelSize) {
-        const voxelCenter = new THREE.Vector3(
-          x + voxelSize / 2,
-          y + voxelSize / 2,
-          z + voxelSize / 2
-        );
-        const toVoxel = voxelCenter.clone().sub(origin);
-        const proj = toVoxel.dot(dir);
+  let foundPos = null;
 
-        if (proj < 0) continue; // skip behind camera
+  for (let i = 0; i < maxDistance / voxelSize; i++) {
+    // snap to voxel grid
+    const snapped = new THREE.Vector3(
+      Math.round(testPos.x / voxelSize) * voxelSize,
+      Math.round(testPos.y / voxelSize) * voxelSize,
+      Math.round(testPos.z / voxelSize) * voxelSize
+    );
 
-        const pointOnRay = origin.clone().addScaledVector(dir, proj);
-        const distToRay = voxelCenter.distanceTo(pointOnRay);
+    // check if a cube already exists here
+    const occupied = scene.children.some(obj =>
+      obj.geometry?.type === 'BoxGeometry' &&
+      obj.position.distanceTo(snapped) < voxelSize * 0.1
+    );
 
-        // must be near the ray (crosshair area)
-        if (distToRay < voxelSize * 0.5 && proj < minDist) {
-          closest = voxelCenter;
-          minDist = proj;
-        }
-      }
+    if (!occupied) {
+      foundPos = snapped;
+      break;
     }
+
+    // move one step further
+    testPos.add(step);
   }
 
-  // Spawn cube if we found a nearby voxel
-  if (closest) {
-    createCube(scene, { point: closest }, ui);
+  if (foundPos) {
+    createCube(scene, { point: foundPos }, ui);
   }
 
   leftClick = false;
 }
+
 
 
 
