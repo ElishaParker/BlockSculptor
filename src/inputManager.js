@@ -184,7 +184,7 @@ if (leftClick && ui.action === 'add') {
       rightClick = false;
     }
   }
-}
+ }
 
 // -----------------------------------------------
 // Optional helper for debugging ray data
