@@ -107,22 +107,53 @@ export function updateInput(dt) {
   if (hits.length > 0) {
     const hit = hits[0];
 
-   // Left click → place cube
+// -------------------------------------------
+// Left click → place cube at nearest voxel
+// -------------------------------------------
 if (leftClick && ui.action === 'add') {
-  const normal = hit.face.normal.clone();
-  const cubeSize = ui.cubeSize;
+  const voxelSize = ui.cubeSize;
+  const roomHalf = 25; // matches your room size / 2
+  const origin = camera.position.clone();
+  const dir = new THREE.Vector3();
+  camera.getWorldDirection(dir);
 
-  // Spawn one cube-length *toward the camera* instead of beyond the wall
-  const pos = hit.point.clone().addScaledVector(normal, -cubeSize / 2);
+  // Find nearest voxel along ray
+  let closest = null;
+  let minDist = Infinity;
 
-  // Snap position cleanly to grid
-  pos.x = Math.round(pos.x / cubeSize) * cubeSize;
-  pos.y = Math.round(pos.y / cubeSize) * cubeSize;
-  pos.z = Math.round(pos.z / cubeSize) * cubeSize;
+  for (let x = -roomHalf; x < roomHalf; x += voxelSize) {
+    for (let y = 0; y < roomSize; y += voxelSize) {
+      for (let z = -roomHalf; z < roomHalf; z += voxelSize) {
+        const voxelCenter = new THREE.Vector3(
+          x + voxelSize / 2,
+          y + voxelSize / 2,
+          z + voxelSize / 2
+        );
+        const toVoxel = voxelCenter.clone().sub(origin);
+        const proj = toVoxel.dot(dir);
 
-  createCube(scene, { point: pos, face: hit.face }, ui);
+        if (proj < 0) continue; // skip behind camera
+
+        const pointOnRay = origin.clone().addScaledVector(dir, proj);
+        const distToRay = voxelCenter.distanceTo(pointOnRay);
+
+        // must be near the ray (crosshair area)
+        if (distToRay < voxelSize * 0.5 && proj < minDist) {
+          closest = voxelCenter;
+          minDist = proj;
+        }
+      }
+    }
+  }
+
+  // Spawn cube if we found a nearby voxel
+  if (closest) {
+    createCube(scene, { point: closest }, ui);
+  }
+
   leftClick = false;
 }
+
 
 
     // Right click → remove cube
