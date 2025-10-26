@@ -1,11 +1,10 @@
 // ==============================
-// main.js  –  Core Orchestrator
+// main.js  –  Core Orchestrator (Fixed)
 // ==============================
 import { initLighting, updateLighting } from './lightingManager.js';
 import { initUI, getUIParams, updateUI } from './uiManager.js';
 import { initInput, updateInput, getRaycastData } from './inputManager.js';
 import { createCube, removeCube, updateCubes } from './cubeManager.js';
-
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
 let scene, camera, renderer;
@@ -21,6 +20,15 @@ function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(innerWidth, innerHeight);
   document.body.appendChild(renderer.domElement);
+
+  // --- ROOM GRID & BOX (added back) ---
+  const roomSize = 50;
+  const grid = new THREE.GridHelper(roomSize, roomSize / 2, 0x444444, 0x222222);
+  scene.add(grid);
+  const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(roomSize, roomSize, roomSize));
+  const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x333333 }));
+  line.position.y = roomSize / 2;
+  scene.add(line);
 
   initLighting(scene);
   initUI(scene, camera);
