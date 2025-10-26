@@ -1,5 +1,5 @@
 // ==============================
-// cubeManager.js – Stable version
+// cubeManager.js – Stable version (syntax-checked)
 // ==============================
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 import { makeMaterial } from './materials.js';
@@ -20,11 +20,13 @@ export function createCube(scene, ray, ui) {
   if (ray?.point) {
     // Use hit point; if a normal exists, offset by half-size
     pos.copy(ray.point);
-    if (ray.face?.normal) pos.addScaledVector(ray.face.normal, size / 2);
+    if (ray.face && ray.face.normal) {
+      pos.addScaledVector(ray.face.normal, size / 2);
+    }
   } else if (ray?.position) {
     pos.copy(ray.position);
   } else {
-    // Fallback: place in front of camera
+    // Fallback: place near origin
     pos.set(0, size / 2, 0);
   }
 
@@ -38,8 +40,9 @@ export function createCube(scene, ray, ui) {
   scene.add(cube);
   cubes.push(cube);
 
-  if (cube.userData.type === 'Gravity')
+  if (cube.userData.type === 'Gravity') {
     cube.userData.vel = new THREE.Vector3(0, 0, 0);
+  }
 
   console.log(`🧊 Cube created at`, pos);
 }
@@ -61,6 +64,7 @@ export function updateCubes(dt) {
     if (c.userData.type === 'Gravity') {
       c.userData.vel.y -= 9.8 * dt;
       c.position.addScaledVector(c.userData.vel, dt);
+
       if (c.position.y < 0.5) {
         c.position.y = 0.5;
         c.userData.vel.y = 0;
