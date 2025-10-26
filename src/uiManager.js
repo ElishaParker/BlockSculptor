@@ -1,59 +1,77 @@
 // ==============================
-// inputManager.js – Movement + Raycast (Full Integration)
+// uiManager.js – GUI + Crosshair (Stable Build)
 // ==============================
+import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.19/+esm';
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
-import { getUIParams } from './uiManager.js';
 
-let camera, scene, raycaster;
-let keys = {};
-let velocityY = 0;
+let params, gui, cross, mat;
 
-export function initInput(el, cam, scn) {
-  camera = cam;
-  scene = scn;
-  raycaster = new THREE.Raycaster();
+export function initUI(scene, camera) {
+  params = {
+    // Cube options
+    action: 'add',
+    cubeSize: 1,
+    cubeColor: '#88ccff',
+    cubeTransparency: 0,
+    cubeType: 'Static',
+    shading: 'Flat',
+    reflectivity: 0.2,
 
-  window.addEventListener('keydown', e => keys[e.code] = true);
-  window.addEventListener('keyup', e => keys[e.code] = false);
+    // Crosshair
+    crossVisible: true,
+    crossColor: '#ffffff',
+
+    // Movement
+    Mode: 'Fly',
+    Gravity: false,
+    FlySpeed: 10,
+    WalkSpeed: 5,
+    JumpHeight: 2.5,
+  };
+
+  gui = new GUI({ width: 300 });
+  
+  const cubeFolder = gui.addFolder('Cube');
+  cubeFolder.add(params, 'action', ['add', 'remove']);
+  cubeFolder.add(params, 'cubeSize', 0.25, 4, 0.25);
+  cubeFolder.addColor(params, 'cubeColor');
+  cubeFolder.add(params, 'cubeTransparency', 0, 1, 0.01);
+  cubeFolder.add(params, 'cubeType', ['Static', 'Gravity']);
+  cubeFolder.add(params, 'shading', ['Flat', 'Smooth']);
+  cubeFolder.add(params, 'reflectivity', 0, 1, 0.01);
+
+  const moveFolder = gui.addFolder('Movement');
+  moveFolder.add(params, 'Mode', ['Fly', 'Walk']);
+  moveFolder.add(params, 'Gravity');
+  moveFolder.add(params, 'FlySpeed', 1, 30, 1);
+  moveFolder.add(params, 'WalkSpeed', 1, 30, 1);
+  moveFolder.add(params, 'JumpHeight', 0.5, 10, 0.5);
+
+  const crossFolder = gui.addFolder('Crosshair');
+  crossFolder.add(params, 'crossVisible');
+  crossFolder.addColor(params, 'crossColor');
+
+  gui.close();
+
+  // Crosshair
+  mat = new THREE.MeshBasicMaterial({ color: params.crossColor });
+  const h = new THREE.PlaneGeometry(0.02, 0.002);
+  const v = new THREE.PlaneGeometry(0.002, 0.02);
+  const horiz = new THREE.Mesh(h, mat);
+  const vert = new THREE.Mesh(v, mat);
+  cross = new THREE.Group();
+  cross.add(horiz, vert);
+  cross.position.set(0, 0, -1);
+  camera.add(cross);
+  scene.add(camera);
 }
 
-export function updateInput(dt) {
-  const ui = getUIParams();
-  const mode = ui.Mode;
-  const gravityEnabled = ui.Gravity;
-  const flySpeed = ui.FlySpeed;
-  const walkSpeed = ui.WalkSpeed;
-  const jumpHeight = ui.JumpHeight;
-
-  const speed = (mode === 'Fly' ? flySpeed : walkSpeed) * dt;
-  const dir = new THREE.Vector3();
-
-  // Basic direction
-  if (keys['KeyW']) dir.z -= 1;
-  if (keys['KeyS']) dir.z += 1;
-  if (keys['KeyA']) dir.x -= 1;
-  if (keys['KeyD']) dir.x += 1;
-
-  if (mode === 'Fly') {
-    if (keys['Space']) dir.y += 1;
-    if (keys['KeyC'] || keys['ControlLeft'] || keys['ShiftLeft']) dir.y -= 1;
-  } else {
-    // Walk mode with gravity + jump
-    if (keys['Space'] && camera.position.y <= 1.51) velocityY = jumpHeight;
-    if (gravityEnabled) velocityY -= 9.8 * dt;
-    camera.position.y += velocityY * dt;
-    if (camera.position.y < 1.5) { camera.position.y = 1.5; velocityY = 0; }
-  }
-
-  dir.normalize();
-  const mat = new THREE.Matrix4().extractRotation(camera.matrix);
-  dir.applyMatrix4(mat);
-  camera.position.addScaledVector(dir, speed);
+export function getUIParams() {
+  return params;
 }
 
-export function getRaycastData() {
-  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-  const hits = raycaster.intersectObjects(scene.children, false);
-  if (hits.length) return { hit: true, point: hits[0].point, face: hits[0].face, object: hits[0].object };
-  return null;
+export function updateUI() {
+  if (!mat || !cross || !params) return;
+  mat.color.set(params.crossColor);
+  cross.visible = params.crossVisible;
 }
